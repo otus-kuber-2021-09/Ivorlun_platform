@@ -1349,7 +1349,86 @@ https://github.com/bitnami-labs/kube-libsonnet/raw/96b30825c33b7286894c095be19b7
 
 # Homework 8 (Operators and CRDs) 
 
+## Controllers  
+### Control Loop
+1. Observe - наблюдение за актуальным состоянием кластера
+1. Analyze - определение различий с желаемым состоянием
+1. Act - выполнение набора действий для достижения желаемого
+состояния
+
+Условно можно описать их логику:  
+```
+for {
+  desired := getDesiredState()
+  current := getCurrentState()
+  makeChanges(desired, current)
+}
+```
+Можно воспринимать kube-api-server как MQ для контроллеров - так как он получает сообщения от одного контроллера и передаёт их другим.  
+При этом всё взаимодействие происходит по протоколу http, с помощью JSON, как правило, используя Long Polling (То есть соединения между контр и куб апи после установления не разрываются) и всевозможного кэширования.  
+
+Контроллеры могут обрабатывать 2 вида триггеров: 
+1. Edge (пограничные) - то есть генерация события, когда в системе произошло изменение состояния какого-то объекта
+1. Level - мониторящие текущее состояние объекта постоянно
+
+Соответственно, чтобы не потерять изменение состояния из-за разрыва сети, например, нужно делать периодическое обновление - это петля обратной связи.  
+
+Контроллеры могут хранить и получать, необходимую им информацию через 
+* Labels
+* Annotation
+* ConfigMaps
+* CRD
+
+## Kubernetes API Aggregation Layer
+
+Можно добавлять объекты для API куба не только через CRD, но и через добавление своего API.
+
+When creating a new API, consider whether to aggregate your API with the Kubernetes cluster APIs or let your API stand alone.
+
+То есть 2 варианта - либо встраиваешься в АПИ куба, либо приворачиваешь свой отдельный.  
+1 вариант предпочтительный, но, чтобы определиться, есть помощник - https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#should-i-add-a-custom-resource-to-my-kubernetes-cluster
+
+## CR/CRD
+
+Для того, чтобы определиться, нужен ли CR в конкретном случае доки предлагают ответить на вопросы - https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#should-i-use-a-configmap-or-a-custom-resource
+
+Наиболее частый способ - это CR и CRD.
+
+A resource is an endpoint in the Kubernetes API that stores a collection of API objects of a certain kind; for example, the built-in pods resource contains a collection of Pod objects.
+
+A custom resource is an extension of the Kubernetes API that is not necessarily available in a default Kubernetes installation. It represents a customization of a particular Kubernetes installation. 
+
+CR - custom resource. То есть объект, который изначально не входит в стандартный набор куба, но мы его можем самостоятельно описать, создать и им оперировать.
+CRD - custom resource definition. Cоздание CustomResourceDefinition создает RESTful путь для каждой описанной версии CustomResource и определяет структуру и доступные версии для конкретного CustomResource.
+
+### Custom controllers
+
+On their own, custom resources let you store and retrieve structured data. When you combine a custom resource with a custom controller, custom resources provide a true declarative API.
+
+The Kubernetes declarative API enforces a separation of responsibilities. You declare the desired state of your resource. The Kubernetes controller keeps the current state of Kubernetes objects in sync with your declared desired state. This is in contrast to an imperative API, where you instruct a server what to do.
+
+## Operators
+Operators are software extensions to Kubernetes that make use of custom resources to manage applications and their components. Operators follow Kubernetes principles, notably the control loop.
+
+Kubernetes operator pattern concept lets you extend the cluster's behaviour without modifying the code of Kubernetes itself by linking controllers to one or more custom resources. Operators are clients of the Kubernetes API that act as controllers for a Custom Resource.
+
+Если сравнивать оператор с хелм чартом, то принципиальная разница в том, что первый статический - поставил и он работает по заранее заданному конфигу, то оператор динамически отслеживает состояние кластера и адаптируется под них.
+
+## Часть ДЗ
+
 После версии 1.22 куба CRD переехали из apiextensions.k8s.io/v1beta1 в apiextensions.k8s.io/v1  
+
+Для того, чтобы определить какие поля у ресурса должны быть обязательно объявлены в CRD используется в корне описания
+```
+      schema:
+        openAPIV3Schema: 
+        required:
+          - image
+          - database
+          - password
+          - storage_size
+```
+
 
 
 # Homework 21 (CNI)
