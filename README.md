@@ -1412,11 +1412,18 @@ Operators are software extensions to Kubernetes that make use of custom resource
 
 Kubernetes operator pattern concept lets you extend the cluster's behaviour without modifying the code of Kubernetes itself by linking controllers to one or more custom resources. Operators are clients of the Kubernetes API that act as controllers for a Custom Resource.
 
+То есть оператор, как правило, состоит из
+* CRD, который содержит описание объектов CR
+* Custom controller - следит за объектами определенного типа, и осуществляет всю логику работы оператора
+
 Если сравнивать оператор с хелм чартом, то принципиальная разница в том, что первый статический - поставил и он работает по заранее заданному конфигу, то оператор динамически отслеживает состояние кластера и адаптируется под них.
+
 
 ## Часть ДЗ
 
 После версии 1.22 куба CRD переехали из apiextensions.k8s.io/v1beta1 в apiextensions.k8s.io/v1  
+
+**Задание по CRD**
 
 Для того, чтобы определить какие поля у ресурса должны быть обязательно объявлены в CRD используется в корне описания
 ```
@@ -1429,6 +1436,21 @@ Kubernetes operator pattern concept lets you extend the cluster's behaviour with
           - storage_size
 ```
 
+По какой-то причине `$HOME./local/bin/` не был в path из-за чего kopf не вызывался после установки.  
+
+После запуска kopf run вылетело исключение:  
+```
+    json_manifest = yaml.load(yaml_manifest)
+TypeError: load() missing 1 required positional argument: 'Loader'
+```
+
+Библиотека загружающая йамл изменилась и теперь со стандартными операциями следует использовать yaml.safe_load(yaml_manifest) - https://stackoverflow.com/a/69581453  
+
+**Вопрос: почему объект создался, хотя мы создали CR, до того, как запустили контроллер?**  
+
+Потому что кластер только записал, что наличие CR mysql в кластере как желаемое, но при отсутствии контроллера не мог его реально создать.  
+
+Вероятно, потому что функция контроллера kopf.on.create работает таким образом, что отслеживает все ранее созданные CR.  
 
 
 # Homework 21 (CNI)
